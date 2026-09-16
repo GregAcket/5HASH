@@ -26,11 +26,11 @@ resource "aws_subnet" "public" {
   for_each = local.subnets
 
   vpc_id            = aws_vpc.main-vpc.id
-  availability_zone = each.value.az
+  availability_zone = each.value.availability_zone
   cidr_block        = each.value.public_cidr
 
   tags = {
-    Name = "${each.value.az}-public"
+    Name = "${each.value.availability_zone}-public"
   }
 }
 
@@ -38,10 +38,10 @@ resource "aws_subnet" "private" {
   for_each = local.subnets
 
   vpc_id            = aws_vpc.main-vpc.id
-  availability_zone = each.value.az
+  availability_zone = each.value.availability_zone
   cidr_block        = each.value.private_cidr
 
   tags = {
-    Name = "${each.value.az}-private"
+    Name = "${each.value.availability_zone}-private"
   }
 }
