@@ -1,14 +1,39 @@
+######## DATA
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
+
+data "aws_ami" "debian_12" {
+  most_recent = true
+  owners      = ["136693071363"]
+
+  filter {
+    name   = "name"
+    values = ["debian-12-amd64-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+######## RESSOURCES
+
+### VPC
 
 resource "aws_vpc" "main-vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "Main"
+    Name = "main-vpc"
   }
 }
+
+###
+
+### Subnets
 
 locals {
   availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
@@ -45,3 +70,236 @@ resource "aws_subnet" "private" {
     Name = "${each.value.availability_zone}-private"
   }
 }
+
+###
+
+### Security Group
+
+resource "aws_security_group" "asg-public-subnet" {
+  name        = "asg-public-subnet"
+  description = "Aws security group for public subnet"
+  vpc_id      = aws_vpc.main-vpc.id
+}
+
+resource "aws_security_group" "asg-auto-scaling-group-private-subnet" {
+  name        = "asg-auto-scaling-group-private-subnet"
+  description = "Aws security group for auto scaling group in private subnet"
+  vpc_id      = aws_vpc.main-vpc.id
+}
+
+resource "aws_security_group" "asg-db-private-subnet" {
+  name        = "asg-db-private-subnet"
+  description = "Aws security group for database in private subnet"
+  vpc_id      = aws_vpc.main-vpc.id
+}
+
+###
+
+### Security group traffic rules
+
+resource "aws_vpc_security_group_ingress_rule" "from_internet_to_lb_http" {
+  description       = "Allow HTTP from internet"
+  security_group_id = aws_security_group.asg-public-subnet.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "from_internet_to_lb_https" {
+  description       = "Allow HTTPS from internet"
+  security_group_id = aws_security_group.asg-public-subnet.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "from_lb_to_ec2_egress" {
+  description                  = "Forward traffic from lb to ec2 instance"
+  security_group_id            = aws_security_group.asg-public-subnet.id
+  referenced_security_group_id = aws_security_group.asg-auto-scaling-group-private-subnet.id
+  from_port                    = 80
+  to_port                      = 80
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "from_lb_to_ec2_ingress" {
+  description                  = "Allow HTTP from lb"
+  security_group_id            = aws_security_group.asg-auto-scaling-group-private-subnet.id
+  referenced_security_group_id = aws_security_group.asg-public-subnet.id
+  from_port                    = 80
+  to_port                      = 80
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "from_ec2_to_db_egress" {
+  description                  = "Allow egress traffic from ec2 instance to db"
+  security_group_id            = aws_security_group.asg-auto-scaling-group-private-subnet.id
+  referenced_security_group_id = aws_security_group.asg-db-private-subnet.id
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "from_ec2_to_internet" {
+  description       = "Allow egress traffic from ec2 instance to internet"
+  security_group_id = aws_security_group.asg-auto-scaling-group-private-subnet.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "from_ec2_to_db_ingress" {
+  description                  = "Allow ingress traffic from ec2 to db"
+  security_group_id            = aws_security_group.asg-db-private-subnet.id
+  referenced_security_group_id = aws_security_group.asg-auto-scaling-group-private-subnet.id
+  from_port                    = 3306
+  to_port                      = 3306
+  ip_protocol                  = "tcp"
+}
+
+###
+
+### Key pair
+resource "aws_key_pair" "key-5HASH" {
+  key_name   = "key-5hash"
+  public_key = file("../.keys/key-5hash.pub")
+}
+
+###
+
+### Secret manager
+
+# resource "aws_secretsmanager_secret" "db_pwd" {
+#   name = "5HASH/db-pwd"
+# }
+
+# resource "aws_secretsmanager_secret_version" "db_pwd_version" {
+#   secret_id     = aws_secretsmanager_secret.db_pwd.id
+#   secret_string = var.db_pwd
+# }
+
+###
+
+### ec2 Instance
+
+resource "aws_instance" "web" {
+  for_each               = aws_subnet.private
+  ami                    = data.aws_ami.debian_12.id
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.private[each.key].id
+  vpc_security_group_ids = [aws_security_group.asg-auto-scaling-group-private-subnet.id]
+  key_name               = aws_key_pair.key-5HASH.key_name
+  tags = {
+    Name    = "Name"
+    Project = "5HASH"
+    Role    = "webservers"
+  }
+}
+
+###
+
+### Ansible Host
+
+# resource "ansible_host" "ansible_host" {
+#   name     = " à definir"
+#   groups   = ["webservers"]
+#   variables = {
+#     ansible_host                 = 
+#     ansible_user                 = "root"
+#     ansible_ssh_private_key_file = "../.keys/key-5HASH"
+#   }
+# }
+
+###
+
+### Internet Gateway
+
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.main-vpc.id
+
+  tags = {
+    Name = "Internet_gateway"
+  }
+}
+
+###
+
+### NAT Gateway
+
+resource "aws_nat_gateway" "nat_gateway" {
+  for_each = local.subnets
+
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = aws_subnet.public[each.key].id
+
+  tags = {
+    Name = "${each.value.availability_zone}-nat"
+  }
+
+  depends_on = [aws_internet_gateway.internet_gateway]
+}
+
+###
+
+### Eip
+
+resource "aws_eip" "nat" {
+  for_each = local.subnets
+  domain   = "vpc"
+
+  tags = {
+    Name = "${each.value.availability_zone}-nat"
+  }
+}
+
+###
+
+### Route
+# Public
+
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.main-vpc.id
+  tags = {
+    Name = "public_route_table"
+  }
+}
+
+resource "aws_route" "public_route" {
+  route_table_id         = aws_route_table.public_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.internet_gateway.id
+}
+
+resource "aws_route_table_association" "public_route_table_association" {
+  for_each = aws_subnet.public
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
+# Private
+
+resource "aws_route_table" "private_route_table" {
+  for_each = local.subnets
+  vpc_id   = aws_vpc.main-vpc.id
+  tags = {
+    Name = "${each.value.availability_zone}-private-route-table"
+  }
+}
+
+resource "aws_route" "private_route" {
+  for_each               = local.subnets
+  route_table_id         = aws_route_table.private_route_table[each.key].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat_gateway[each.key].id
+}
+
+resource "aws_route_table_association" "private_route_table_association" {
+  for_each = aws_subnet.private
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private_route_table[each.key].id
+}
+
+###

@@ -1,6 +1,6 @@
 .terraform/
 *.tfstate
 .tfstate.
-
+.terraform.lock.hcl
 .keys/
 *.retry
