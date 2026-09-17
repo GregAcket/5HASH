@@ -1,5 +1,9 @@
 ######## DATA
 
+data "aws_s3_bucket" "bucket" {
+  bucket = var.bucket_name
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -19,6 +23,24 @@ data "aws_ami" "debian_12" {
   }
 }
 
+data "aws_cloudfront_cache_policy" "cloudfront_cache_policy" {
+  name = var.cloudfront_managed_cache
+}
+
+######## LOCALS
+
+locals {
+  availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  subnets = {
+    for index, availability_zone in local.availability_zones : availability_zone => {
+      availability_zone = availability_zone
+      public_cidr       = cidrsubnet(aws_vpc.main-vpc.cidr_block, 8, index * 2)
+      private_cidr      = cidrsubnet(aws_vpc.main-vpc.cidr_block, 8, index * 2 + 1)
+    }
+  }
+}
+
 ######## RESSOURCES
 
 ### VPC
@@ -35,17 +57,7 @@ resource "aws_vpc" "main-vpc" {
 
 ### Subnets
 
-locals {
-  availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
 
-  subnets = {
-    for index, availability_zone in local.availability_zones : availability_zone => {
-      availability_zone = availability_zone
-      public_cidr       = cidrsubnet(aws_vpc.main-vpc.cidr_block, 8, index * 2)
-      private_cidr      = cidrsubnet(aws_vpc.main-vpc.cidr_block, 8, index * 2 + 1)
-    }
-  }
-}
 
 resource "aws_subnet" "public" {
   for_each = local.subnets
@@ -300,6 +312,56 @@ resource "aws_route_table_association" "private_route_table_association" {
 
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private_route_table[each.key].id
+}
+
+###
+
+### CloudFront OAC
+
+resource "aws_cloudfront_origin_access_control" "default" {
+  name                              = "default-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+###
+
+### CloudFront Distribution 
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+  origin {
+    domain_name              = data.aws_s3_bucket.bucket.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.default.id
+    origin_id                = var.s3_origin_id
+  }
+
+  enabled = true
+  default_cache_behavior {
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = var.s3_origin_id
+    cache_policy_id        = data.aws_cloudfront_cache_policy.cloudfront_cache_policy.id
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "whitelist"
+      locations        = ["FR"]
+    }
+  }
+
+  # tags = {
+  #   Environment = "production"
+  # }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
 }
 
 ###
