@@ -193,19 +193,60 @@ resource "aws_key_pair" "key-5HASH" {
 
 ### ec2 Instance
 
-resource "aws_instance" "web" {
-  for_each               = aws_subnet.private
-  ami                    = data.aws_ami.debian_12.id
-  instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.private[each.key].id
-  vpc_security_group_ids = [aws_security_group.asg-auto-scaling-group-private-subnet.id]
-  key_name               = aws_key_pair.key-5HASH.key_name
-  tags = {
-    Name    = "Name"
-    Project = "5HASH"
-    Role    = "webservers"
+# resource "aws_instance" "web" {
+#   for_each               = aws_subnet.private
+#   ami                    = data.aws_ami.debian_12.id
+#   instance_type          = "t3.micro"
+#   subnet_id              = aws_subnet.private[each.key].id
+#   vpc_security_group_ids = [aws_security_group.asg-auto-scaling-group-private-subnet.id]
+#   key_name               = aws_key_pair.key-5HASH.key_name
+#   tags = {
+#     Name    = "Name"
+#     Project = "5HASH"
+#     Role    = "webservers"
+#   }
+# }
+
+### Launch template 
+
+resource "aws_launch_template" "launch_template" {
+  name                                 = "launch_template"
+  image_id                             = data.aws_ami.debian_12.id
+  instance_initiated_shutdown_behavior = "terminate"
+  instance_type                        = var.instance
+  vpc_security_group_ids               = [aws_security_group.asg-auto-scaling-group-private-subnet.id]
+  user_data = base64encode(<<-EOF
+  #!/bin/bash
+  echo "OK from $(hostname)" > /tmp/index.html
+  cd /tmp
+  nohup python3 -m http.server 80 > /var/log/user-data-http.log 2>&1 &
+  EOF
+  )
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Name = "launch_template"
+    }
   }
+
 }
+
+resource "aws_autoscaling_group" "autoscaling_group" {
+  min_size            = 2
+  max_size            = 3
+  desired_capacity    = 2
+  target_group_arns   = [aws_lb_target_group.lb_target_group.arn]
+  vpc_zone_identifier = [for subnet in aws_subnet.private : subnet.id]
+
+  launch_template {
+    id = aws_launch_template.launch_template.id
+  }
+
+}
+
+
+###
 
 ###
 
@@ -240,7 +281,7 @@ resource "aws_internet_gateway" "internet_gateway" {
 resource "aws_nat_gateway" "nat_gateway" {
   for_each = local.subnets
 
-  allocation_id = aws_eip.nat[each.key].id
+  allocation_id = aws_eip.eip[each.key].id
   subnet_id     = aws_subnet.public[each.key].id
 
   tags = {
@@ -254,12 +295,12 @@ resource "aws_nat_gateway" "nat_gateway" {
 
 ### Eip
 
-resource "aws_eip" "nat" {
+resource "aws_eip" "eip" {
   for_each = local.subnets
   domain   = "vpc"
 
   tags = {
-    Name = "${each.value.availability_zone}-nat"
+    Name = "${each.value.availability_zone}-eip"
   }
 }
 
@@ -364,32 +405,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
 ### Firewall
 
-# resource "aws_wafv2_web_acl_rule" "aws_managed_rules" {
-#   name        = "aws-managed-rules"
-#   priority    = 3
-#   web_acl_arn = aws_wafv2_web_acl.firewall.arn
-
-#   override_action {
-#     none {}
-#   }
-
-#   statement {
-#     managed_rule_group_statement {
-#       name        = "AWSManagedRulesCommonRuleSet"
-#       vendor_name = "AWS"
-#     }
-#   }
-
-#   visibility_config {
-#     cloudwatch_metrics_enabled = true
-#     metric_name                = "aws-managed-rules"
-#     sampled_requests_enabled   = true
-#   }
-# }
-
-
-
-
 resource "aws_wafv2_web_acl_rule" "Common_Rule_Set" {
   name        = "AWSManagedRulesCommonRuleSet"
   priority    = 10
@@ -458,5 +473,42 @@ resource "aws_wafv2_web_acl" "firewall" {
     ignore_changes = [rule]
   }
 }
+
+###
+
+### Load balancer 
+
+resource "aws_lb" "load_balancer" {
+  name               = "load-balancer"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.asg-public-subnet.id]
+  subnets            = [for subnet in aws_subnet.public : subnet.id]
+
+  # tags = {
+  #   Environment = "production"
+  # }
+}
+
+resource "aws_lb_target_group" "lb_target_group" {
+  name     = "lb-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main-vpc.id
+
+  health_check {
+    timeout = 6
+  }
+}
+
+resource "aws_lb_listener" "lb_listener" {
+  load_balancer_arn = aws_lb.load_balancer.arn
+  port              = 80
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.lb_target_group.arn
+  }
+}
+
 
 ###
