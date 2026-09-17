@@ -32,3 +32,8 @@ variable "cloudfront_managed_cache" {
   default = "Managed-CachingOptimized"
 }
 
+variable "firewall_name" {
+  type    = string
+  default = "firewall"
+}
+

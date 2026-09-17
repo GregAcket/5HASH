@@ -57,8 +57,6 @@ resource "aws_vpc" "main-vpc" {
 
 ### Subnets
 
-
-
 resource "aws_subnet" "public" {
   for_each = local.subnets
 
@@ -343,9 +341,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     target_origin_id       = var.s3_origin_id
     cache_policy_id        = data.aws_cloudfront_cache_policy.cloudfront_cache_policy.id
     viewer_protocol_policy = "allow-all"
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
+
   }
 
   restrictions {
@@ -361,6 +357,105 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   viewer_certificate {
     cloudfront_default_certificate = true
+  }
+}
+
+###
+
+### Firewall
+
+# resource "aws_wafv2_web_acl_rule" "aws_managed_rules" {
+#   name        = "aws-managed-rules"
+#   priority    = 3
+#   web_acl_arn = aws_wafv2_web_acl.firewall.arn
+
+#   override_action {
+#     none {}
+#   }
+
+#   statement {
+#     managed_rule_group_statement {
+#       name        = "AWSManagedRulesCommonRuleSet"
+#       vendor_name = "AWS"
+#     }
+#   }
+
+#   visibility_config {
+#     cloudwatch_metrics_enabled = true
+#     metric_name                = "aws-managed-rules"
+#     sampled_requests_enabled   = true
+#   }
+# }
+
+
+
+
+resource "aws_wafv2_web_acl_rule" "Common_Rule_Set" {
+  name        = "AWSManagedRulesCommonRuleSet"
+  priority    = 10
+  web_acl_arn = aws_wafv2_web_acl.firewall.arn
+
+  override_action {
+    none {}
+  }
+
+  statement {
+    managed_rule_group_statement {
+      name        = "AWSManagedRulesCommonRuleSet"
+      vendor_name = "AWS"
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "AWSManagedRulesCommonRuleSet"
+    sampled_requests_enabled   = true
+  }
+}
+
+
+resource "aws_wafv2_web_acl_rule" "Known_Bad_Inputs" {
+  name        = "AWSManagedRulesKnownBadInputsRuleSet"
+  priority    = 20
+  web_acl_arn = aws_wafv2_web_acl.firewall.arn
+
+  override_action {
+    none {}
+  }
+
+  statement {
+    managed_rule_group_statement {
+      name        = "AWSManagedRulesKnownBadInputsRuleSet"
+      vendor_name = "AWS"
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "AWSManagedRulesKnownBadInputsRuleSet"
+    sampled_requests_enabled   = true
+  }
+}
+
+resource "aws_wafv2_web_acl" "firewall" {
+  name  = "${var.prefix}-${var.firewall_name}"
+  scope = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  tags = {
+    Name = "${var.prefix}-${var.firewall_name}"
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.prefix}-${var.firewall_name}"
+    sampled_requests_enabled   = true
+  }
+
+  lifecycle {
+    ignore_changes = [rule]
   }
 }
 
