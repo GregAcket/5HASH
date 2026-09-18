@@ -20,6 +20,18 @@ ssh-keygen -t ed25519 -f .keys/key-5hash -N ""
 
 ```
 
+Executer
+
+```sh
+
+terraform init
+terraform fmt -recursive
+terraform validate
+terraform plan
+terraform apply
+
+```
+
 En cas de terraform destroy il faut delete le secret
 
 ```sh
