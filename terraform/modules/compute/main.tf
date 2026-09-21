@@ -48,11 +48,13 @@ resource "aws_launch_template" "launch_template" {
 ### Auto scalling group
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  min_size            = 2
-  max_size            = 3
-  desired_capacity    = 2
-  target_group_arns   = [var.lb_target_group_arn]
-  vpc_zone_identifier = [for subnet in var.private_subnet_ids : subnet]
+  min_size                  = 2
+  max_size                  = 3
+  desired_capacity          = 2
+  health_check_grace_period = 150
+  health_check_type         = "ELB"
+  target_group_arns         = [var.lb_target_group_arn]
+  vpc_zone_identifier       = [for subnet in var.private_subnet_ids : subnet]
 
   launch_template {
     id = aws_launch_template.launch_template.id
@@ -65,7 +67,7 @@ resource "aws_autoscaling_group" "autoscaling_group" {
 
 resource "aws_key_pair" "key-5HASH" {
   key_name   = "key-5hash"
-  public_key = file("../../../.keys/key-5hash.pub")
+  public_key = file("../${path.root}/.keys/key-5hash.pub")
 }
 
 ###

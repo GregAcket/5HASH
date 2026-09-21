@@ -14,3 +14,7 @@ variable "db_pwd" {
   sensitive = true
 }
 
+variable "db_user" {
+  type    = string
+  default = "user"
+}

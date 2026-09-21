@@ -5,6 +5,7 @@ module "network" {
 module "security" {
   source = "./modules/security"
   vpc_id = module.network.vpc_id
+  lb_arn = module.loadbalancer.lb_arn
 }
 
 module "compute" {
@@ -23,8 +24,11 @@ module "loadbalancer" {
 }
 
 module "database" {
-  source = "./modules/database"
-  db_pwd = var.db_pwd
+  source                   = "./modules/database"
+  db_pwd                   = var.db_pwd
+  db_user                  = var.db_user
+  private_subnet_ids       = module.network.private_subnet_ids
+  asg_db_private_subnet_id = module.security.asg_db_private_subnet_id
 }
 
 ######## RESSOURCES

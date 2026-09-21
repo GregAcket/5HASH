@@ -11,3 +11,8 @@ variable "firewall_name" {
   type    = string
   default = "firewall"
 }
+
+variable "lb_arn" {
+  description = "Load balancer arn"
+  type        = string
+}

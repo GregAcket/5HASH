@@ -37,3 +37,12 @@ En cas de terraform destroy il faut delete le secret
 ```sh
 aws secretsmanager delete-secret --secret-id "5HASH/db-pwd" --region eu-west-3 --force-delete-without-recovery
 ```
+
+test WAF
+
+curl -i "http://<dns-de-ton-alb>/?q=<script>alert(1)</script>"
+curl -i "http://load-balancer-2122675166.eu-west-3.elb.amazonaws.com/?q=<script>alert(1)</script>"
+
+multi az :
+
+aws rds describe-db-instances --db-instance-identifier terraform-bdc3b32b5ca88f0b0bcde1005f --region eu-west-3 --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]'
