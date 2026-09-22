@@ -1,20 +1,24 @@
 
 variable "region" {
-  type    = string
-  default = "eu-west-3"
+  description = "Region name"
+  type        = string
+  default     = "eu-west-3"
 }
 
 variable "instance" {
-  type    = string
-  default = "t3.micro"
+  description = "Instance type"
+  type        = string
+  default     = "t3.micro"
 }
 
 variable "db_pwd" {
-  type      = string
-  sensitive = true
+  description = "db password"
+  type        = string
+  sensitive   = true
 }
 
 variable "db_user" {
-  type    = string
-  default = "user"
+  description = "db user"
+  type        = string
+  default     = "user"
 }

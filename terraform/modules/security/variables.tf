@@ -4,12 +4,14 @@ variable "vpc_id" {
 }
 
 variable "prefix" {
-  type    = string
-  default = "5hash"
+  description = "Prefix"
+  type        = string
+  default     = "5hash"
 }
 variable "firewall_name" {
-  type    = string
-  default = "firewall"
+  description = "Firewall name"
+  type        = string
+  default     = "firewall"
 }
 
 variable "lb_arn" {
