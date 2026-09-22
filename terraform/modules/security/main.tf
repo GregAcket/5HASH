@@ -1,3 +1,11 @@
+######## DATA
+
+data "http" "get_ip" {
+  url = "https://checkip.amazonaws.com"
+}
+
+######## RESSOURCES
+
 ### Security Group
 
 resource "aws_security_group" "asg_public_subnet" {
@@ -15,6 +23,12 @@ resource "aws_security_group" "asg_auto_scaling_group_private_subnet" {
 resource "aws_security_group" "asg_db_private_subnet" {
   name        = "asg-db-private-subnet"
   description = "Aws security group for database in private subnet"
+  vpc_id      = var.vpc_id
+}
+
+resource "aws_security_group" "bastion" {
+  name        = "asg-bastion"
+  description = "Aws security group for bastion"
   vpc_id      = var.vpc_id
 }
 
@@ -82,6 +96,35 @@ resource "aws_vpc_security_group_ingress_rule" "from_ec2_to_db_ingress" {
   to_port                      = 3306
   ip_protocol                  = "tcp"
 }
+
+
+resource "aws_vpc_security_group_ingress_rule" "from_internet_to_bastion_ssh" {
+  description       = "Allow ingress ssh traffic from internet"
+  security_group_id = aws_security_group.bastion.id
+  cidr_ipv4         = "${chomp(data.http.get_ip.response_body)}/32"
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "from_bastion_to_ec2_ssh_egress" {
+  description                  = "Allow egress ssh traffic from bastion to ec2"
+  security_group_id            = aws_security_group.bastion.id
+  referenced_security_group_id = aws_security_group.asg_auto_scaling_group_private_subnet.id
+  from_port                    = 22
+  to_port                      = 22
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "from_bastion_to_ec2_ssh_ingress" {
+  description                  = "Allow ingress ssh traffic from bastion to ec2"
+  security_group_id            = aws_security_group.asg_auto_scaling_group_private_subnet.id
+  referenced_security_group_id = aws_security_group.bastion.id
+  from_port                    = 22
+  to_port                      = 22
+  ip_protocol                  = "tcp"
+}
+
 
 ###
 

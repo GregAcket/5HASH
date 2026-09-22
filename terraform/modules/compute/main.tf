@@ -15,6 +15,8 @@ data "aws_ami" "debian_12" {
   }
 }
 
+
+
 ######## RESSOURCES
 
 ### Launch template 
@@ -51,13 +53,30 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   min_size                  = 2
   max_size                  = 3
   desired_capacity          = 2
-  health_check_grace_period = 150
+  health_check_grace_period = 300
   health_check_type         = "ELB"
   target_group_arns         = [var.lb_target_group_arn]
   vpc_zone_identifier       = [for subnet in var.private_subnet_ids : subnet]
 
   launch_template {
     id = aws_launch_template.launch_template.id
+  }
+}
+
+###
+
+### Instance bastion
+
+resource "aws_instance" "bastion" {
+
+  ami                    = data.aws_ami.debian_12.id
+  instance_type          = var.instance
+  subnet_id              = values(var.public_subnet_ids)[0]
+  vpc_security_group_ids = [var.asg_bastion_id]
+  key_name               = aws_key_pair.key-5HASH.key_name
+
+  tags = {
+    Name = "bastion"
   }
 }
 

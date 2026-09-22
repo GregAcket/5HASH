@@ -1,5 +1,6 @@
 module "network" {
-  source = "./modules/network"
+  source              = "./modules/network"
+  instance_bastion_id = module.compute.instance_bastion_id
 }
 
 module "security" {
@@ -10,8 +11,10 @@ module "security" {
 
 module "compute" {
   source                                   = "./modules/compute"
+  public_subnet_ids                        = module.network.public_subnet_ids
   private_subnet_ids                       = module.network.private_subnet_ids
   asg_auto_scaling_group_private_subnet_id = module.security.asg_auto_scaling_group_private_subnet_id
+  asg_bastion_id                           = module.security.asg_bastion_id
   lb_target_group_arn                      = module.loadbalancer.lb_target_group_arn
   instance                                 = var.instance
 }
@@ -32,8 +35,6 @@ module "database" {
 }
 
 ######## RESSOURCES
-
-
 
 ### Ansible Host
 

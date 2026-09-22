@@ -12,3 +12,8 @@ output "asg_db_private_subnet_id" {
   description = "db private subnet security group id"
   value       = aws_security_group.asg_db_private_subnet.id
 }
+
+output "asg_bastion_id" {
+  description = "bastion security group id"
+  value       = aws_security_group.bastion.id
+}

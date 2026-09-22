@@ -101,6 +101,18 @@ resource "aws_eip" "eip" {
   }
 }
 
+resource "aws_eip" "bastion" {
+  domain = "vpc"
+  tags = {
+    Name = "bastion-eip"
+  }
+}
+
+resource "aws_eip_association" "bastion" {
+  instance_id   = var.instance_bastion_id
+  allocation_id = aws_eip.bastion.id
+}
+
 ###
 
 ### Routes

@@ -1,3 +1,8 @@
+variable "public_subnet_ids" {
+  description = "public subnet id"
+  type        = map(string)
+}
+
 variable "private_subnet_ids" {
   description = "private subnet ids"
   type        = map(string)
@@ -17,3 +22,11 @@ variable "instance" {
   description = "instance ec2"
   type        = string
 }
+
+
+variable "asg_bastion_id" {
+  description = "asg bastion id"
+  type        = string
+}
+
+

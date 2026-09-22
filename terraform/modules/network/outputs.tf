@@ -12,3 +12,8 @@ output "private_subnet_ids" {
   description = "private subnet ids"
   value       = { for key, subnet in aws_subnet.private : key => subnet.id }
 }
+
+output "bastion_eip_ip" {
+  description = "bastion eip ip"
+  value       = aws_eip.bastion.public_ip
+}

@@ -1,5 +1,5 @@
 variable "asg_public_subnet_id" {
-  description = "public subnet id"
+  description = "public subnet security group id"
   type        = string
 }
 

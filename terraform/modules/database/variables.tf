@@ -1,11 +1,13 @@
 
 variable "db_pwd" {
-  type      = string
-  sensitive = true
+  description = "db password"
+  type        = string
+  sensitive   = true
 }
 
 variable "db_user" {
-  type = string
+  description = "db username"
+  type        = string
 }
 
 variable "private_subnet_ids" {
@@ -14,5 +16,6 @@ variable "private_subnet_ids" {
 }
 
 variable "asg_db_private_subnet_id" {
-  type = string
+  description = "db private subnet security group id"
+  type        = string
 }

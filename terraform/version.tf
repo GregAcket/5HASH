@@ -8,5 +8,9 @@ terraform {
       source  = "ansible/ansible"
       version = "~> 1.5"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.6"
+    }
   }
 }
