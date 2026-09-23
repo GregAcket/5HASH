@@ -17,6 +17,7 @@ module "compute" {
   asg_bastion_id                           = module.security.asg_bastion_id
   lb_target_group_arn                      = module.loadbalancer.lb_target_group_arn
   instance                                 = var.instance
+  min_size_ec2_instance                    = var.min_size_ec2_instance
 }
 
 module "loadbalancer" {
@@ -27,25 +28,19 @@ module "loadbalancer" {
 }
 
 module "database" {
-  source                   = "./modules/database"
-  db_pwd                   = var.db_pwd
-  db_user                  = var.db_user
-  private_subnet_ids       = module.network.private_subnet_ids
-  asg_db_private_subnet_id = module.security.asg_db_private_subnet_id
+  source                     = "./modules/database"
+  db_pwd                     = var.db_pwd
+  db_user                    = var.db_user
+  private_subnet_ids         = module.network.private_subnet_ids
+  asg_db_private_subnet_id   = module.security.asg_db_private_subnet_id
+  ansible_vault_secrets_yaml = var.ansible_vault_secrets_yaml
 }
 
-######## RESSOURCES
-
-### Ansible Host
-
-# resource "ansible_host" "ansible_host" {
-#   name     = " à definir"
-#   groups   = ["webservers"]
-#   variables = {
-#     ansible_host                 = 
-#     ansible_user                 = "root"
-#     ansible_ssh_private_key_file = "../.keys/key-5HASH"
-#   }
-# }
-
-###
+module "ansible" {
+  source                = "./modules/ansible"
+  min_size_ec2_instance = var.min_size_ec2_instance
+  running_ec2_instances = module.compute.running_ec2_instances
+  bastion_eip_ip        = module.network.bastion_eip_ip
+  db_instance_endpoint  = module.database.db_instance_endpoint
+  db_pwd                = var.db_pwd
+}

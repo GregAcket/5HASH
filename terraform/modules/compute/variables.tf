@@ -29,4 +29,7 @@ variable "asg_bastion_id" {
   type        = string
 }
 
-
+variable "min_size_ec2_instance" {
+  description = "min size ec2 instance"
+  type        = number
+}

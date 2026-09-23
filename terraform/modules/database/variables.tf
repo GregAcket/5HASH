@@ -19,3 +19,8 @@ variable "asg_db_private_subnet_id" {
   description = "db private subnet security group id"
   type        = string
 }
+
+variable "ansible_vault_secrets_yaml" {
+  description = "ansible vault secrets yaml"
+  type        = string
+}

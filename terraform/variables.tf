@@ -22,3 +22,15 @@ variable "db_user" {
   type        = string
   default     = "user"
 }
+
+variable "min_size_ec2_instance" {
+  description = "min size ec2 instance"
+  type        = number
+  default     = 2
+}
+
+variable "ansible_vault_secrets_yaml" {
+  description = "ansible vault secrets yaml"
+  type        = string
+  default     = "./ansible/group_vars/all/vault.yml"
+}

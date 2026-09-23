@@ -45,15 +45,6 @@ resource "aws_vpc_security_group_ingress_rule" "from_internet_to_lb_http" {
   ip_protocol       = "tcp"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "from_internet_to_lb_https" {
-  description       = "Allow HTTPS from internet"
-  security_group_id = aws_security_group.asg_public_subnet.id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 443
-  to_port           = 443
-  ip_protocol       = "tcp"
-}
-
 resource "aws_vpc_security_group_egress_rule" "from_lb_to_ec2_egress" {
   description                  = "Forward traffic from lb to ec2 instance"
   security_group_id            = aws_security_group.asg_public_subnet.id

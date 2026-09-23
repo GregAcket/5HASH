@@ -3,4 +3,9 @@ output "instance_bastion_id" {
   value       = aws_instance.bastion.id
 }
 
+output "running_ec2_instances" {
+  description = "running ec2 instances"
+  value       = data.aws_instances.running_ec2_instances.private_ips
+}
+
 

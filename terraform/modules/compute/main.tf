@@ -16,11 +16,19 @@ data "aws_ami" "debian_12" {
 }
 
 
+data "aws_instances" "running_ec2_instances" {
+  instance_tags = {
+    "aws:autoscaling:groupName" = aws_autoscaling_group.autoscaling_group.name
+  }
+
+  instance_state_names = ["running"]
+
+  depends_on = [aws_autoscaling_group.autoscaling_group]
+}
 
 ######## RESSOURCES
 
 ### Launch template 
-
 
 resource "aws_launch_template" "launch_template" {
   name                                 = "launch_template"
@@ -50,9 +58,9 @@ resource "aws_launch_template" "launch_template" {
 ### Auto scalling group
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  min_size                  = 2
+  min_size                  = var.min_size_ec2_instance
   max_size                  = 3
-  desired_capacity          = 2
+  desired_capacity          = var.min_size_ec2_instance
   health_check_grace_period = 300
   health_check_type         = "ELB"
   target_group_arns         = [var.lb_target_group_arn]

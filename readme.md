@@ -81,6 +81,12 @@ multi az :
 aws rds describe-db-instances --db-instance-identifier terraform-bdc3b32b5ca88f0b0bcde1005f --region eu-west-3 --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]'
 ```
 
+pour tester la connexion en ssh sur le bastion:
+
+```sh
+ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
+```
+
 /!\ Important :
 
 Le contournement de ce bug ne faisant pas l'objet de ce projet, nous avons fait génerer les fichiers .dockerignore, dockerfile et run.sh.
@@ -98,3 +104,11 @@ docker build -t 5hash-tools .
 ./run.sh ansible-playbook -i ansible/inventory.yml ansible/site.yml --ask-vault-pass
 ./run.sh ansible-playbook -i ansible/inventory.yml ansible/site.yml --ask-vault-pass
 ```
+
+creation du vault dans docker :
+
+```sh
+./run.sh ansible-vault create ansible/group_vars/all/vault.yml
+```
+
+generer le mot de passe
