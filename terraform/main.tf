@@ -41,6 +41,6 @@ module "ansible" {
   running_ec2_instances = module.compute.running_ec2_instances
   bastion_eip_ip        = module.network.bastion_eip_ip
   db_instance_endpoint  = module.database.db_instance_endpoint
-  db_pwd                = var.db_pwd
   db_user               = var.db_user
+  lb_dns_name           = module.loadbalancer.lb_dns_name
 }

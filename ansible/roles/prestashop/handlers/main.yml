@@ -1,0 +1,3 @@
+---
+- name: Restart Prestashop
+  ansible.builtin.command: docker restart prestashop

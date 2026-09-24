@@ -18,6 +18,8 @@ resource "aws_lb_target_group" "lb_target_group" {
   vpc_id   = var.vpc_id
 
   health_check {
+    path    = "/"
+    matcher = "200,302"
     timeout = 6
   }
 }

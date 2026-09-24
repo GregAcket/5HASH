@@ -110,6 +110,7 @@ docker build -t 5hash-tools .
 ./run.sh terraform -chdir=terraform apply
 ./run.sh ansible-galaxy install -r ansible/requirements.yml
 ./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --graph
+./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --list
 ./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
 ./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
 ```
@@ -122,4 +123,18 @@ visualiser le graph depuis la racine :
 
 ```sh
 ./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --list
+```
+
+test pour ne faire tourner qu'une seule instance --> prestashop fonctionne
+
+```sh
+./run.sh ansible web-1 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker stop prestashop"
+./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker rm -f prestashop"
+./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass --limit web-0
+```
+
+test prestashop
+
+```sh
+./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker logs --tail 40 prestashop"
 ```

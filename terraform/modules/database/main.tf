@@ -2,7 +2,8 @@
 ### Secret manager
 
 resource "aws_secretsmanager_secret" "db_pwd" {
-  name = "5HASH/db-pwd"
+  name                    = "5HASH/db-pwd"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_pwd_version" {

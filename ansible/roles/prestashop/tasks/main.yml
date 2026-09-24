@@ -10,11 +10,12 @@
     name: prestashop
     image: prestashop/prestashop:9.1
     published_ports:
-      - 8080:80
+      - 80:80
     env:
       DB_SERVER: "{{ endpoint_rds.split(':')[0] }}"
       DB_USER: "{{ db_user }}"
       DB_PASSWD: "{{ db_pwd }}"
       DB_NAME: "{{ db_name }}"
-    restart: yes
+      PS_DOMAIN: "{{ lb_dns_name }}"
+      PS_INSTALL_AUTO: "1"
     restart_policy: unless-stopped

@@ -18,12 +18,12 @@ variable "db_instance_endpoint" {
   type        = string
 }
 
-variable "db_pwd" {
-  description = "db password"
+variable "db_user" {
+  description = "db user"
   type        = string
 }
 
-variable "db_user" {
-  description = "db user"
+variable "lb_dns_name" {
+  description = "lb dns name"
   type        = string
 }
