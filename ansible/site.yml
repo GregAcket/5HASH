@@ -1,0 +1,9 @@
+---
+- name: Configure Prestashop ec2 servers
+  hosts: webservers
+  gather_facts: true
+  become: true
+  roles:
+    - geerlingguy.docker
+    - prestashop
+    # - nginx

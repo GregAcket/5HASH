@@ -19,22 +19,20 @@ resource "ansible_host" "ansible_host_ec2" {
   groups = ["webservers"]
   variables = {
     ansible_host                 = var.running_ec2_instances[count.index]
-    ansible_user                 = "admin"
+    ansible_user                 = var.db_user
     ansible_ssh_private_key_file = ".keys/key-5hash"
-    ansible_ssh_common_args      = "-o ProxyCommand='ssh -i .keys/key-5hash -W %h:%p admin@${var.bastion_eip_ip}'"
+    ansible_ssh_common_args      = "-o ProxyCommand='ssh -W %h:%p -i /work/.keys/key-5hash -o StrictHostKeyChecking=accept-new ${var.db_user}@${var.bastion_eip_ip} -o UserKnownHostsFile=/dev/null'"
     endpoint_rds                 = var.db_instance_endpoint
-    db_password                  = var.db_pwd
   }
 }
 
 resource "ansible_host" "ansible_host_bastion" {
-  name   = "bastion"
+  name   = "bastion-instance"
   groups = ["bastion"]
   variables = {
     ansible_host                 = var.bastion_eip_ip
-    ansible_user                 = "admin"
+    ansible_user                 = var.db_user
     ansible_ssh_private_key_file = ".keys/key-5hash"
-
   }
 }
 

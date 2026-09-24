@@ -28,12 +28,11 @@ module "loadbalancer" {
 }
 
 module "database" {
-  source                     = "./modules/database"
-  db_pwd                     = var.db_pwd
-  db_user                    = var.db_user
-  private_subnet_ids         = module.network.private_subnet_ids
-  asg_db_private_subnet_id   = module.security.asg_db_private_subnet_id
-  ansible_vault_secrets_yaml = var.ansible_vault_secrets_yaml
+  source                   = "./modules/database"
+  db_pwd                   = var.db_pwd
+  db_user                  = var.db_user
+  private_subnet_ids       = module.network.private_subnet_ids
+  asg_db_private_subnet_id = module.security.asg_db_private_subnet_id
 }
 
 module "ansible" {
@@ -43,4 +42,5 @@ module "ansible" {
   bastion_eip_ip        = module.network.bastion_eip_ip
   db_instance_endpoint  = module.database.db_instance_endpoint
   db_pwd                = var.db_pwd
+  db_user               = var.db_user
 }

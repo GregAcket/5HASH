@@ -5,5 +5,6 @@ terraform {
     workspace_key_prefix = "5hash/workspaces"
     region               = "eu-west-3"
     use_lockfile         = true
+    encrypt              = true
   }
 }

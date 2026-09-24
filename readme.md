@@ -95,20 +95,31 @@ L'idée du contournement est de fixer les versions de Ansible et de Terraform à
 
 Pour executer les commandes de test, il faudra prefixer par ./run.sh les commandes terraform et ansible (elles doivent tourner dans le conteneur, avec les versions d'outils fixées). Les autres commandes (docker, aws, ssh-keygen, curl) s'executent directement sur la machine, sans prefixe.
 
-```sh
-docker build -t 5hash-tools .
-./run.sh terraform -chdir=terraform init
-./run.sh terraform -chdir=terraform apply
-./run.sh ansible-galaxy install -r ansible/requirements.yml
-./run.sh ansible-inventory -i ansible/inventory.yml --graph
-./run.sh ansible-playbook -i ansible/inventory.yml ansible/site.yml --ask-vault-pass
-./run.sh ansible-playbook -i ansible/inventory.yml ansible/site.yml --ask-vault-pass
-```
-
 creation du vault dans docker :
 
 ```sh
 ./run.sh ansible-vault create ansible/group_vars/all/vault.yml
 ```
 
-generer le mot de passe
+generer le mot de passe à la demande.
+
+```sh
+docker build -t 5hash-tools .
+./run.sh terraform -chdir=terraform init
+./run.sh terraform -chdir=terraform plan
+./run.sh terraform -chdir=terraform apply
+./run.sh ansible-galaxy install -r ansible/requirements.yml
+./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --graph
+./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
+./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
+```
+
+visualiser le graph depuis la racine :
+
+```sh
+./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --graph
+```
+
+```sh
+./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --list
+```

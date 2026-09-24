@@ -190,7 +190,7 @@ resource "aws_wafv2_web_acl_rule" "Known_Bad_Inputs" {
   }
 }
 
-resource "aws_wafv2_web_acl_association" "example" {
+resource "aws_wafv2_web_acl_association" "waf_acl_association" {
   resource_arn = var.lb_arn
   web_acl_arn  = aws_wafv2_web_acl.firewall.arn
 }

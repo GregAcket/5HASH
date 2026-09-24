@@ -22,3 +22,8 @@ variable "db_pwd" {
   description = "db password"
   type        = string
 }
+
+variable "db_user" {
+  description = "db user"
+  type        = string
+}
