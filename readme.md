@@ -169,3 +169,8 @@ ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
 ```sh
 ./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker logs --tail 40 prestashop"
 ```
+
+5. Déploiement de prestashop
+```sh
+curl -I http://<DNS-DU-LOAD-BALANCER>
+```
