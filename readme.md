@@ -1,126 +1,102 @@
-Prérequis :
+<a id="readme-top"></a>
 
-Docker
-un compte aws
-Avoir aws CLI installé
-utiliser la region eu-west-3
+<h2 align="center">5HASH</h2>
+<h3 align="center">Déploiement de Prestashop à l'aide d'outils d'automatisation </h3>
+</br>
 
-Préparation :
+<!-- TABLE OF CONTENTS -->
+<details>
+    <summary>Sommaire</summary>
+    <ol>
+        <li>
+            <a href="#a-propos-du-projet">À propos du projet</a>
+        </li>
+        <li>
+            <a href="#prérequis">Prérequis</a>
+        </li>
+        <li>
+            <a href="#mise-en-place">Mise en place</a>
+        </li>
+        <li><a href="#environnement">Environnement</a></li>
+    </ol>
+</details>
 
-Dans un terminal, exporter ses propres variables d'environnement fournie par la console aws
+<!-- ABOUT THE PROJECT -->
+## A propos du projet
+Dans le cadre du concert de Taylor Shift, il nous a été demander de configurer l'infrastructure et le déploiement d'une plateforme e-commerce de vente de billets concerts basée sur l'image Prestashop. L'infrastructure doit pouvoir supporter des pics de trafic, notamment à l'ouverture de la billeterie. 
+
+L'objectif est d'automatiser le déploiement en utilisant Terraform et Ansible pour éviter l'intervention d'une maintenance manuelle.
+
+
+## Prérequis
+
+- Docker
+- un compte aws avec un minimum de 5$ de crédit
+- Avoir aws CLI installé
+- utiliser la region eu-west-3
+
+## Mise en place
+
+1. **Dans un terminal, exporter ses propres variables d'environnement fournie par la console aws :** 
 
 ```sh
 export AWS_ACCESS_KEY_ID="..."
 export AWS_SECRET_ACCESS_KEY="..."
 ```
 
-construire l'image docker depuis la racine:
+2. **Construire l'image docker depuis la racine:**
 
 ```sh
 docker build -t 5hash-tools .
 ```
 
-Si cette commande renvoie "Permission denied", executer la commande
+Si cette commande renvoie "Permission denied", executer la commande : `chmod +x run.sh` et relancer le build.
 
-```sh
-chmod +x run.sh
-```
+3. **Créer le bucket s3 au préalable avec la commande :**
 
-puis relancer
-
-```sh
-docker build -t 5hash-tools .
-```
-
-creer le bucket s3 au préalable avec la commande :
-/!\ Important :
-
-Les noms de bucket sont unique, il vous faudra remplacer "5hash-bucket" par votre nom de bucket dans la commande ci-dessous ainsi que dans le fichier **/terraform/backend.tf**
+> /!\ **Important :**
+> Les noms de bucket sont unique, il vous faudra remplacer "5hash-bucket" par votre nom de bucket dans la commande ci-dessous ainsi que dans le fichier `/terraform/backend.tf`
 
 ```sh
 aws s3api create-bucket --bucket "5hash-bucket" --region eu-west-3 --create-bucket-configuration LocationConstraint=eu-west-3
 ```
 
-generer une key ssh
-
+4. **Génerer une clé ssh à la racine du projet**
 ```sh
-
 mkdir -p .keys
 ssh-keygen -t ed25519 -f .keys/key-5hash -N ""
-
 ```
 
-Executer
-
-```sh
-
-./run.sh terraform -chdir=terraform init
-./run.sh terraform -chdir=terraform fmt -recursive
-./run.sh terraform -chdir=terraform validate
-./run.sh terraform -chdir=terraform plan
-./run.sh terraform -chdir=terraform apply
-
-```
-
-En cas de terraform destroy il faut delete le secret
-
-```sh
-aws secretsmanager delete-secret --secret-id "5HASH/db-pwd" --region eu-west-3 --force-delete-without-recovery
-```
-
-test WAF :
-
-```sh
-curl -i "http://<dns-de-ton-alb>/?q=<script>alert(1)</script>"
-curl -i "http://load-balancer-2122675166.eu-west-3.elb.amazonaws.com/?q=<script>alert(1)</script>"
-```
-
-multi az :
-
-```sh
-aws rds describe-db-instances --db-instance-identifier terraform-bdc3b32b5ca88f0b0bcde1005f --region eu-west-3 --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]'
-```
-
-pour tester la connexion en ssh sur le bastion:
-
-```sh
-ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
-```
-
-/!\ Important :
-
-Le contournement de ce bug ne faisant pas l'objet de ce projet, nous avons fait génerer les fichiers .dockerignore, dockerfile et run.sh.
-
-L'idée du contournement est de fixer les versions de Ansible et de Terraform à des versions avant que le bug n'apparraisse. Ce contournement permet ainsi d'avoir un environnement identique et fonctionnel, quel que soit l'OS de votre machine en utilisant terraform_provider.
-
-Pour executer les commandes de test, il faudra prefixer par ./run.sh les commandes terraform et ansible (elles doivent tourner dans le conteneur, avec les versions d'outils fixées). Les autres commandes (docker, aws, ssh-keygen, curl) s'executent directement sur la machine, sans prefixe.
-
-creation du mot de passe de la db coté terraform
-créer le mot de passe à l'invite de commande.
-
+5. **Création du mot de passe de la base de données coté terraform**
 ```sh
 read -rsp "db secret: " TF_VAR_db_pwd
 export TF_VAR_db_pwd
 echo
 ```
 
-creation du vault dans docker pour ansible:
-créer le mot de passe à l'invite de commande.
-
+6. **Création du vault dans docker pour ansible:**
 ```sh
 ./run.sh ansible-vault create ansible/group_vars/all/vault.yml
 ```
+Dans le vault, entrer les valeurs suivantes : 
+```
+db_pwd: "xxxx"
+db_user: "xxx"
+db_name: "xxx"
+```
+> /!\ Attention : les valeurs du Vault doivent correspondres à celles de terraform. 
 
-Attention les mot de passe crées dans le vault doivent correspondre exactement à ce qui est renseigné coté terraform
-Fournir :
-
-db_pwd, db_user et db_name
-
+7. **Initialisation, planification, et création des ressources Terraform**
 ```sh
-docker build -t 5hash-tools .
 ./run.sh terraform -chdir=terraform init
+./run.sh terraform -chdir=terraform fmt -recursive
+./run.sh terraform -chdir=terraform validate
 ./run.sh terraform -chdir=terraform plan
 ./run.sh terraform -chdir=terraform apply
+```
+
+8. **Lancer les commandes Ansible pour configurer les EC2 dans l'ordre suivant :**  
+```sh
 ./run.sh ansible-galaxy install -r ansible/requirements.yml
 ./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --graph
 ./run.sh ansible-inventory -i ansible/inventory/prestashop.terraform.yml --list
@@ -128,7 +104,49 @@ docker build -t 5hash-tools .
 ./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
 ```
 
-test prestashop
+---
+>**En cas de terraform destroy il faut delete le secret**
+>```sh
+>aws secretsmanager delete-secret --secret-id "5HASH/db-pwd" --region eu-west-3 --force-delete-without-recovery
+>```
+
+## Environnement
+L'inventaire dynamique Ansible repose sur le plugin `cloud.terraform.terraform_provider`, qui lit directement le state Terraform pour lister les instances. Ce plugin présente un bug avec les versions récentes de Terraform et d'Ansible.
+
+Le contournement de ce bug ne faisant pas l'objet du projet, les fichiers `Dockerfile`, `.dockerignore` et `run.sh` ont été générés afin de figer les outils sur des versions antérieures au bug :
+
+| Outil | Version |
+|---|---|
+| Terraform | 1.16.3 |
+| ansible-core | 2.18.19 |
+
+L'image Docker `5hash-tools` fournit ainsi un environnement identique et fonctionnel, quel que soit l'OS de la machine.
+
+>**Utilisation du préfixe `./run.sh` **
+>
+>Le script `run.sh` exécute le conteneur `5hash-tools`, en y montant le projet et en transmettant les variables d'environnement nécessaires (identifiants AWS, `TF_VAR_db_pwd`).
+>- **Commandes `terraform` et `ansible-*`** : à préfixer par `./run.sh` pour qu'elles tournent avec les versions figées.
+>- **Autres commandes** (`docker`, `aws`, `ssh-keygen`, `ssh`, `curl`) : à exécuter directement sur la machine, sans préfixe.
+
+
+## Tests et vérification
+1. Vérification du fonctionnement du firewall : 
+
+```sh
+curl -i "http://<DNS-DU-LOAD-BALANCER>/?q=<script>alert(1)</script>"
+```
+
+2. Vérification de la mise en place du RDS multi AZ :
+```sh
+aws rds describe-db-instances --db-instance-identifier terraform-bdc3b32b5ca88f0b0bcde1005f --region eu-west-3 --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]'
+```
+
+3. Teste de la connexion en ssh sur le bastion :
+```sh
+ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
+```
+
+4. Vérification du lancement du conteneur Prestashop
 
 ```sh
 ./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker logs --tail 40 prestashop"
