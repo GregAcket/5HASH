@@ -179,6 +179,43 @@ ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
 ```
 
 5. Déploiement de prestashop
+
 ```sh
 curl -I http://<DNS-DU-LOAD-BALANCER>
 ```
+
+## Explication et justification des choix techniques
+
+### Structure des dosiers du projet
+
+À la racine du projet, on retrouve le README , le run.sh et le DOCKERFILE ainsi que les fichiers .gitignore et .dockerignore. La documentation restante se trouve dans le dossier `Docs` (sujet et image de l'architecture complete et détaillée).
+
+Concernant la partie technique, nous avons souhaité séparer la partie infrastructure de la partie configuration. C'est pourquoi nous retrouvons un dossier `terraform` et un dossier `ansible`.
+
+**Terraform**
+
+Dans notre organisation, les groupes de ressources de même type ont été rassemblés au sein d'un même module, on en compte 7 (ansible, database, compute ...). Les modules communiquent entre eux grâce au main.tf situé à la racine.
+
+On y retrouve aussi le state de terraform stocké dans un bucket s3 crypté et en remote. Pour éviter un accès concurrent, nous avons activé le paramètre use_lockfile.
+
+Le version.tf on retrouve la déclaration des dependances de terraform tandis que dans provider.tf on configure le fournisseur cloud choisi, AWS dans notre cas.
+
+Les données que nous souhaitons exposer se retrouvent dans output.tf. Les variables globale que nous souhaitons propager sont dans variables.tf.
+
+**Ansible**
+
+À la racine, on retrouve le fichier de configuration ansible.cfg, le playbook principal : "site.yml" qui comprend 2 roles. Le premier, geerlingguy.docker qui permet d'installer docker et ses dépendances. Le second, prestashop, qui va installer et configurer tout le necessaire pour le fontionnement des images prestashop.
+
+Le fichier requirement.yml contient le role geerlingguy.docker ainsi que les collections qui vont nous donner accès aux modules utilisés pour appliquer les différents tasks.
+
+Le dossier inventaire contient le fichier contenant le plugin terraform_provider qui fourni dynamiquement les hôtes sur lesquels ansible va executer ses tâches.
+
+### Justification technique
+
+### Limites
+
+La limite plus contraignante vient du fait que les commandes terraform apply et ansible-playbook sont executées manuellement. De fait, lors d'un upscale,terraform génère une instance ec2. L'inventaire ne sera jamais actualisé tant que terraform apply ne sera pas executé. Cette nouvelle instance ec2 ne sera pas configurée avec l'imnage de prestashop. De fait, cette instance restera unhealthy et terraform va detruire et regenerer cette instance en boucle.
+
+Dans le cas où une instance viendrait à tomber, le loadbalancer la detecterait comme unhealthy après 6s. Il la détruirait pour en recréer une nouvelle mais cette dernière ne contiendrait pas la configuration de prestashop.
+
+Malgré l'auto-scaling des instances, nous n'avons qu'une seule base de donmnées configurée en ecriture. De fait si cette base sature, le service deviendrait indisponible car elle ne se mettrais pas à l'échelle en conséquence.

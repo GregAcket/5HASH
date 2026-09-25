@@ -9,7 +9,7 @@ terraform {
       version = "~> 1.5"
     }
     http = {
-      source  = "hashicorp/http"
+      source  = "hashicorp/http" #pour aller chercher l'ip de l'admin pour la co en ssh au bastion
       version = "~> 3.6"
     }
   }
