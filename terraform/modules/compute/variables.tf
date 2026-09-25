@@ -33,3 +33,12 @@ variable "min_size_ec2_instance" {
   description = "min size ec2 instance"
   type        = number
 }
+variable "lb_arn_suffix" {
+  description = "lb arn suffix"
+  type        = string
+}
+
+variable "lb_target_group_arn_suffix" {
+  description = "lb target group arn suffix"
+  type        = string
+}

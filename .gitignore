@@ -9,3 +9,5 @@
 *.retry
 
 .ansible/
+
+**/group_vars/*

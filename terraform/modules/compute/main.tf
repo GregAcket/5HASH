@@ -64,6 +64,28 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   }
 }
 
+resource "aws_autoscaling_policy" "aws_autoscaling_policy" {
+  name                   = "aws autoscaling policy"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ALBRequestCountPerTarget"
+      resource_label         = "${var.lb_arn_suffix}/${var.lb_target_group_arn_suffix}"
+
+    }
+
+    target_value = 1000.0
+
+  }
+}
+
+
+
 ###
 
 ### Instance bastion

@@ -16,8 +16,11 @@ module "compute" {
   asg_auto_scaling_group_private_subnet_id = module.security.asg_auto_scaling_group_private_subnet_id
   asg_bastion_id                           = module.security.asg_bastion_id
   lb_target_group_arn                      = module.loadbalancer.lb_target_group_arn
+  lb_arn_suffix                            = module.loadbalancer.lb_arn_suffix
+  lb_target_group_arn_suffix               = module.loadbalancer.lb_target_group_arn_suffix
   instance                                 = var.instance
   min_size_ec2_instance                    = var.min_size_ec2_instance
+
 }
 
 module "loadbalancer" {
