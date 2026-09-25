@@ -3,6 +3,7 @@
   hosts: webservers
   gather_facts: true
   become: true
+  serial: 1
   roles:
     - geerlingguy.docker
     - prestashop

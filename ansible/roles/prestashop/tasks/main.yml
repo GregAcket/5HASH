@@ -4,6 +4,27 @@
     name: prestashop/prestashop:9.1
     platform: amd64
 
+- name: Install NFS client
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: true
+
+- name: Mount the EFS shared folder
+  ansible.posix.mount:
+    path: /mnt/prestashop
+    src: "{{ efs_dns_name }}:/"
+    fstype: nfs4
+    opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev
+    state: mounted
+
+- name: Give the shared folder to www-data
+  ansible.builtin.file:
+    path: /mnt/prestashop
+    owner: "33"
+    group: "33"
+    mode: "0755"
+
 - name: Start container and link to rds
   no_log: true
   community.docker.docker_container:
@@ -19,3 +40,5 @@
       PS_DOMAIN: "{{ lb_dns_name }}"
       PS_INSTALL_AUTO: "1"
     restart_policy: unless-stopped
+    volumes:
+      - /mnt/prestashop:/var/www/html

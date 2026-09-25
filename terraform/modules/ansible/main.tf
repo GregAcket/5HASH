@@ -24,6 +24,7 @@ resource "ansible_host" "ansible_host_ec2" {
     ansible_ssh_common_args      = "-o ProxyCommand='ssh -W %h:%p -i /work/.keys/key-5hash -o StrictHostKeyChecking=accept-new ${var.db_user}@${var.bastion_eip_ip} -o UserKnownHostsFile=/dev/null'"
     endpoint_rds                 = var.db_instance_endpoint
     lb_dns_name                  = var.lb_dns_name
+    efs_dns_name                 = var.efs_dns_name
   }
 }
 

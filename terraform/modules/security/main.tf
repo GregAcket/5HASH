@@ -116,6 +116,14 @@ resource "aws_vpc_security_group_ingress_rule" "from_bastion_to_ec2_ssh_ingress"
   ip_protocol                  = "tcp"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "from_ec2_to_efs_nfs_ingress" {
+  description                  = "Allow ingress traffic from ec2 instances to nfs"
+  security_group_id            = aws_security_group.efs.id
+  referenced_security_group_id = aws_security_group.asg_auto_scaling_group_private_subnet.id
+  from_port                    = 2049
+  to_port                      = 2049
+  ip_protocol                  = "tcp"
+}
 
 ###
 
@@ -193,6 +201,16 @@ resource "aws_wafv2_web_acl_rule" "Known_Bad_Inputs" {
 resource "aws_wafv2_web_acl_association" "waf_acl_association" {
   resource_arn = var.lb_arn
   web_acl_arn  = aws_wafv2_web_acl.firewall.arn
+}
+
+###
+
+### EFS
+
+resource "aws_security_group" "efs" {
+  name        = "efs"
+  description = "Aws security group for EFS"
+  vpc_id      = var.vpc_id
 }
 
 ###

@@ -27,3 +27,8 @@ variable "lb_dns_name" {
   description = "lb dns name"
   type        = string
 }
+
+variable "efs_dns_name" {
+  description = "EFS dns name"
+  type        = string
+}

@@ -43,4 +43,11 @@ module "ansible" {
   db_instance_endpoint  = module.database.db_instance_endpoint
   db_user               = var.db_user
   lb_dns_name           = module.loadbalancer.lb_dns_name
+  efs_dns_name          = module.storage.efs_dns_name
+}
+
+module "storage" {
+  source                = "./modules/storage"
+  private_subnet_ids    = module.network.private_subnet_ids
+  efs_security_group_id = module.security.efs_security_group_id
 }

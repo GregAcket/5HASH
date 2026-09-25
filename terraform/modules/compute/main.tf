@@ -52,9 +52,9 @@ resource "aws_launch_template" "launch_template" {
 
 resource "aws_autoscaling_group" "autoscaling_group" {
   min_size                  = var.min_size_ec2_instance
-  max_size                  = 1
+  max_size                  = 3
   desired_capacity          = var.min_size_ec2_instance
-  health_check_grace_period = 1200
+  health_check_grace_period = 3600
   health_check_type         = "ELB"
   target_group_arns         = [var.lb_target_group_arn]
   vpc_zone_identifier       = [for subnet in var.private_subnet_ids : subnet]
