@@ -63,7 +63,7 @@ export AWS_ACCESS_KEY_ID="..."
 export AWS_SECRET_ACCESS_KEY="..."
 ```
 
-2. **Construire l'image docker depuis la racine:**
+2. **Construire l'image docker depuis la racine :**
 
 ```sh
 docker build -t 5hash-tools .
@@ -93,7 +93,7 @@ export TF_VAR_db_pwd
 echo
 ```
 
-6. **Création du vault dans docker pour ansible:**
+6. **Création du vault dans docker pour ansible :**
 
 ```sh
 ./run.sh ansible-vault create ansible/group_vars/all/vault.yml
@@ -108,7 +108,7 @@ db_name: "mydb"
 ```
 
 > /!\ Attention : les valeurs du Vault doivent correspondre à celles de terraform.
-> db_pwd doit être pareil que la valeur de TF_VAR_db_pwd
+> db_pwd doit être identique à la valeur de TF_VAR_db_pwd
 
 7. **Initialisation, planification, et création des ressources Terraform**
 
@@ -154,17 +154,27 @@ L'image Docker `5hash-tools` fournit ainsi un environnement identique et fonctio
 
 ## Procédures de tests et vérifications
 
+Les `<DNS-DU-LOAD-BALANCER>` et `<IP-DU-BASTION>` sont disponibles avec la commande :
+
+```sh
+./run.sh terraform -chdir=terraform output
+```
+
 1. Vérification du fonctionnement du firewall :
 
 ```sh
 curl -i "http://<DNS-DU-LOAD-BALANCER>/?q=<script>alert(1)</script>"
 ```
 
+Résultat attendu : un statuscode 403 FORBIDDEN.
+
 2. Vérification de la mise en place du RDS multi AZ :
 
 ```sh
-aws rds describe-db-instances --db-instance-identifier terraform-<IDENTIFIANT-RDS> --region eu-west-3 --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]'
+aws rds describe-db-instances --region eu-west-3 --query "DBInstances[?DBName=='mydb'].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]" --output table
 ```
+
+Résultat attendu : un tableau avec la valeur true et le nom des différentes AZ.
 
 3. Test de la connexion en ssh sur le bastion :
 
@@ -172,11 +182,15 @@ aws rds describe-db-instances --db-instance-identifier terraform-<IDENTIFIANT-RD
 ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
 ```
 
+Résultat attendu : vous êtes connecté au bastion
+
 4. Vérification du lancement du conteneur Prestashop
 
 ```sh
 ./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker logs --tail 40 prestashop"
 ```
+
+Résultat attendu : le log du container ciblé (web-0 ou web-1) s'affiche.
 
 5. Déploiement de prestashop
 
@@ -184,38 +198,48 @@ ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
 curl -I http://<DNS-DU-LOAD-BALANCER>
 ```
 
+Résultat attendu : un statuscode 200 OK.
+
 ## Explication et justification des choix techniques
 
-### Structure des dosiers du projet
+### Structure des dossiers du projet
 
-À la racine du projet, on retrouve le README , le run.sh et le DOCKERFILE ainsi que les fichiers .gitignore et .dockerignore. La documentation restante se trouve dans le dossier `Docs` (sujet et image de l'architecture complete et détaillée).
+À la racine du projet, on retrouve le README, le run.sh et le Dockerfile ainsi que les fichiers .gitignore et .dockerignore. La documentation restante se trouve dans le dossier `Docs` (sujet et image de l'architecture complète et détaillée).
 
 Concernant la partie technique, nous avons souhaité séparer la partie infrastructure de la partie configuration. C'est pourquoi nous retrouvons un dossier `terraform` et un dossier `ansible`.
 
 **Terraform**
 
-Dans notre organisation, les groupes de ressources de même type ont été rassemblés au sein d'un même module, on en compte 7 (ansible, database, compute ...). Les modules communiquent entre eux grâce au main.tf situé à la racine.
+Dans notre organisation, les groupes de ressources ayant la même fonction ont été rassemblés au sein d'un même module, on en compte 7 (ansible, database, compute ...). Les modules communiquent entre eux grâce au fichier main.tf situé à la racine.
 
-On y retrouve aussi le state de terraform stocké dans un bucket s3 crypté et en remote. Pour éviter un accès concurrent, nous avons activé le paramètre use_lockfile.
+backend.tf contient la configuration du stockage du state de terraform dans un bucket s3 chiffré et en remote. Pour éviter un accès concurrent, nous avons activé le paramètre use_lockfile.
 
-Le version.tf on retrouve la déclaration des dependances de terraform tandis que dans provider.tf on configure le fournisseur cloud choisi, AWS dans notre cas.
+Dans version.tf, il y a la déclaration des dépendances de terraform tandis que dans provider.tf on configure le fournisseur cloud choisi, AWS dans notre cas.
 
-Les données que nous souhaitons exposer se retrouvent dans output.tf. Les variables globale que nous souhaitons propager sont dans variables.tf.
+Les données que nous souhaitons exposer se retrouvent dans outputs.tf. Les variables globales que nous souhaitons propager sont dans variables.tf.
 
 **Ansible**
 
-À la racine, on retrouve le fichier de configuration ansible.cfg, le playbook principal : "site.yml" qui comprend 2 roles. Le premier, geerlingguy.docker qui permet d'installer docker et ses dépendances. Le second, prestashop, qui va installer et configurer tout le necessaire pour le fontionnement des images prestashop.
+À la racine de ce dossier, on retrouve le fichier de configuration ansible.cfg, le playbook principal : "site.yml" qui comprend 2 rôles. Le premier, geerlingguy.docker, permet d'installer docker et ses dépendances. Le second, prestashop, va installer et configurer tout le nécessaire pour le fonctionnement de l'image prestashop dans un container docker sur chaque instance.
 
-Le fichier requirement.yml contient le role geerlingguy.docker ainsi que les collections qui vont nous donner accès aux modules utilisés pour appliquer les différents tasks.
+Le fichier requirements.yml contient le rôle geerlingguy.docker ainsi que les collections qui vont nous donner accès aux modules utilisés pour appliquer les différentes tâches.
 
-Le dossier inventaire contient le fichier contenant le plugin terraform_provider qui fourni dynamiquement les hôtes sur lesquels ansible va executer ses tâches.
+Le dossier `inventory` contient le fichier contenant le plugin terraform_provider qui fournit dynamiquement les hôtes sur lesquels ansible va exécuter ses tâches.
 
 ### Justification technique
 
 ### Limites
 
-La limite plus contraignante vient du fait que les commandes terraform apply et ansible-playbook sont executées manuellement. De fait, lors d'un upscale,terraform génère une instance ec2. L'inventaire ne sera jamais actualisé tant que terraform apply ne sera pas executé. Cette nouvelle instance ec2 ne sera pas configurée avec l'imnage de prestashop. De fait, cette instance restera unhealthy et terraform va detruire et regenerer cette instance en boucle.
+La limite la plus contraignante vient du fait que les commandes terraform apply et ansible-playbook sont exécutées manuellement. Lors d'un upscale, l'Auto Scaling group lance une nouvelle instance EC2. L'inventaire Ansible, lui, n'est construit qu'au moment du terraform apply : la nouvelle instance n'y figure pas tant que terraform apply n'a pas été relancé. Elle démarre donc sans Docker, sans le montage de l'EFS et sans le conteneur PrestaShop, tant que ansible-playbook n'a pas été relancé à son tour. En attendant, le load balancer la juge unhealthy et ne lui envoie aucun trafic. Si personne n'intervient, l'Auto Scaling group la remplace à la fin de la grace period (3600 s), par une instance tout aussi vide.
 
-Dans le cas où une instance viendrait à tomber, le loadbalancer la detecterait comme unhealthy après 6s. Il la détruirait pour en recréer une nouvelle mais cette dernière ne contiendrait pas la configuration de prestashop.
+Pour pallier ce problème, il faudrait que les instances se configurent seules au démarrage, par exemple avec un user_data dans le launch template qui exécute Ansible localement, ou avec une AMI préparée à l'avance. Le plugin amazon.aws.aws_ec2, utilisé à la place de terraform_provider, garderait l'inventaire à jour sans terraform apply, mais il faudrait toujours relancer le playbook pour configurer la nouvelle instance.
 
-Malgré l'auto-scaling des instances, nous n'avons qu'une seule base de donmnées configurée en ecriture. De fait si cette base sature, le service deviendrait indisponible car elle ne se mettrais pas à l'échelle en conséquence.
+Dans le cas où une instance viendrait à tomber, le load balancer la détecte comme unhealthy après environ 90 secondes (3 health checks échoués consécutifs, espacés de 30 secondes) et cesse de lui envoyer du trafic : les visiteurs sont servis par l'autre instance. L'Auto Scaling group la remplace ensuite par une nouvelle instance. Grâce à l'EFS, les fichiers de PrestaShop sont déjà présents, mais cette nouvelle instance doit tout de même être configurée par Ansible (Docker, montage de l'EFS, conteneur) après un terraform apply.
+
+Malgré l'auto-scaling des instances, nous n'avons qu'une seule base de données en écriture : l'instance de secours du Multi-AZ assure la disponibilité en cas de panne, mais ne répond à aucune requête. Si cette base sature, le service est ralenti, puisqu'elle ne se met pas à l'échelle automatiquement. Les évolutions possibles sont d'augmenter la taille de l'instance RDS ou d'ajouter des réplicas en lecture.
+
+Temps d'attente de la première installation extrêmement long (30 à 40 min).
+
+La période de grâce d'1 h ==> une instance unhealthy ne sera remplacée qu'après 1h (nécessaire au temps de la première installation)
+
+La connexion en SSH au bastion ne fonctionne que depuis l'IP de la machine qui a lancé le terraform apply.

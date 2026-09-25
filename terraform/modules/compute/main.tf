@@ -68,10 +68,8 @@ resource "aws_autoscaling_group" "autoscaling_group" {
 
 resource "aws_autoscaling_policy" "aws_autoscaling_policy" {
   name                   = "aws autoscaling policy"
-  adjustment_type        = "ChangeInCapacity"
   autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
   policy_type            = "TargetTrackingScaling"
-
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
