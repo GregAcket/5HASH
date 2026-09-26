@@ -45,12 +45,12 @@ L'infrastructure est déployée dans la région `eu-west-3`, au sein d'un VPC r�
 - **RDS MySQL multi-AZ** : base de données managée, avec une instance de secours synchronisée dans l'autre AZ. Le mot de passe est stocké dans Secrets Manager.
 - **Bastion** : seul point d'accès SSH, utilisé par Ansible pour configurer les instances privées.
 - **NAT gateways** : une par AZ, pour que les instances privées accèdent à Internet (images Docker, paquets) sans être exposées.
-- **Bucket S3** : stocke le state Terraform, avec verrouillage.
+- **Bucket S3** : stocke le state Terraform, avec verrouillage et chiffrement.
 
 ## Prérequis
 
 - Docker
-- un compte aws avec un minimum de 5$ de crédit
+- un compte aws avec un minimum de crédit disponible
 - Avoir aws CLI installé
 - utiliser la région eu-west-3
 
@@ -130,6 +130,8 @@ db_name: "mydb"
 ./run.sh ansible-playbook -i ansible/inventory/prestashop.terraform.yml ansible/site.yml --ask-vault-pass
 ```
 
+> Note : La première installation de prestashop prend entre 30 à 40 minutes, donc l'execution du test de [Déploiement de prestashop](#procédures-de-tests-et-vérifications) (point 5 ci dessous) doit se faire après ce délai, quand, dans le point 4, les premiers log d'apache apparraissent.
+
 ## Environnement
 
 L'inventaire dynamique Ansible repose sur le plugin cloud.terraform.terraform_provider. Il lit le state Terraform et construit l'inventaire à partir des ressources ansible_host qui y sont déclarées. La dernière version de ce plugin (collection cloud.terraform 4.0.0) est incompatible avec ansible-core 2.21 et suivantes : elle utilise une fonction d'Ansible dont un paramètre a été supprimé, et aucune version corrective n'est publiée à ce jour.
@@ -166,7 +168,7 @@ Les `<DNS-DU-LOAD-BALANCER>` et `<IP-DU-BASTION>` sont disponibles avec la comma
 curl -i "http://<DNS-DU-LOAD-BALANCER>/?q=<script>alert(1)</script>"
 ```
 
-Résultat attendu : un statuscode 403 FORBIDDEN.
+> Résultat attendu : un statuscode 403 FORBIDDEN.
 
 2. Vérification de la mise en place du RDS multi AZ :
 
@@ -174,7 +176,7 @@ Résultat attendu : un statuscode 403 FORBIDDEN.
 aws rds describe-db-instances --region eu-west-3 --query "DBInstances[?DBName=='mydb'].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone]" --output table
 ```
 
-Résultat attendu : un tableau avec la valeur true et le nom des différentes AZ.
+> Résultat attendu : un tableau avec la valeur true et le nom des différentes AZ.
 
 3. Test de la connexion en ssh sur le bastion :
 
@@ -182,7 +184,7 @@ Résultat attendu : un tableau avec la valeur true et le nom des différentes AZ
 ssh -i .keys/key-5hash admin@<IP-DU-BASTION>
 ```
 
-Résultat attendu : vous êtes connecté au bastion
+> Résultat attendu : vous êtes connecté au bastion
 
 4. Vérification du lancement du conteneur Prestashop
 
@@ -190,7 +192,7 @@ Résultat attendu : vous êtes connecté au bastion
 ./run.sh ansible web-0 -i ansible/inventory/prestashop.terraform.yml -b -m ansible.builtin.command -a "docker logs --tail 40 prestashop"
 ```
 
-Résultat attendu : le log du container ciblé (web-0 ou web-1) s'affiche.
+> Résultat attendu : le log du container ciblé (web-0 ou web-1) s'affiche.
 
 5. Déploiement de prestashop
 
@@ -198,7 +200,7 @@ Résultat attendu : le log du container ciblé (web-0 ou web-1) s'affiche.
 curl -I http://<DNS-DU-LOAD-BALANCER>
 ```
 
-Résultat attendu : un statuscode 200 OK.
+> Résultat attendu : un statuscode 200 OK.
 
 ## Explication et justification des choix techniques
 
@@ -226,8 +228,6 @@ Le fichier requirements.yml contient le rôle geerlingguy.docker ainsi que les c
 
 Le dossier `inventory` contient le fichier contenant le plugin terraform_provider qui fournit dynamiquement les hôtes sur lesquels ansible va exécuter ses tâches.
 
-### Justification technique
-
 ### Limites
 
 La limite la plus contraignante vient du fait que les commandes terraform apply et ansible-playbook sont exécutées manuellement. Lors d'un upscale, l'Auto Scaling group lance une nouvelle instance EC2. L'inventaire Ansible, lui, n'est construit qu'au moment du terraform apply : la nouvelle instance n'y figure pas tant que terraform apply n'a pas été relancé. Elle démarre donc sans Docker, sans le montage de l'EFS et sans le conteneur PrestaShop, tant que ansible-playbook n'a pas été relancé à son tour. En attendant, le load balancer la juge unhealthy et ne lui envoie aucun trafic. Si personne n'intervient, l'Auto Scaling group la remplace à la fin de la grace period (3600 s), par une instance tout aussi vide.
@@ -240,6 +240,8 @@ Malgré l'auto-scaling des instances, nous n'avons qu'une seule base de données
 
 Temps d'attente de la première installation extrêmement long (30 à 40 min).
 
-La période de grâce d'1 h ==> une instance unhealthy ne sera remplacée qu'après 1h (nécessaire au temps de la première installation)
+La période de grâce d'une heure nécessaire à une première installation implique qu'une nouvelle instance créée qui a un status unhealthy ne sera remplacée qu'après une heure.
 
 La connexion en SSH au bastion ne fonctionne que depuis l'IP de la machine qui a lancé le terraform apply.
+
+Pour séparer la configuration des instances de celle du conteneur, nous avons fait un template contenant les variables d'environnement de ce dernier : le template permet de générer un fichier d'environnement stocké sur l'instance à partir du vault et utilisé directement par le container. Cela introduit une étape intermédiaire entre la lecture des secrets du vault et l'utilisation de ces variables par le conteneur, ce qui induit un stockage des mots de passe en clair sur l'instance uniquement protégés par les droits d'accès ROOT (0600).

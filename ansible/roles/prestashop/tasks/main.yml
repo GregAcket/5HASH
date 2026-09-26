@@ -25,6 +25,20 @@
     group: "33"
     mode: "0755"
 
+- name: Create prestashop folder
+  ansible.builtin.file:
+    state: directory
+    path: /etc/prestashop
+    mode: "0700"
+
+- name: Generate env file
+  no_log: true
+  ansible.builtin.template:
+    src: prestashop.env.j2
+    dest: /etc/prestashop/prestashop.env
+    mode: "0600"
+  notify: Restart Prestashop
+
 - name: Start container and link to rds
   no_log: true
   community.docker.docker_container:
@@ -32,13 +46,8 @@
     image: prestashop/prestashop:9.1
     published_ports:
       - 80:80
-    env:
-      DB_SERVER: "{{ endpoint_rds.split(':')[0] }}"
-      DB_USER: "{{ db_user }}"
-      DB_PASSWD: "{{ db_pwd }}"
-      DB_NAME: "{{ db_name }}"
-      PS_DOMAIN: "{{ lb_dns_name }}"
-      PS_INSTALL_AUTO: "1"
+    env_file: /etc/prestashop/prestashop.env
     restart_policy: unless-stopped
     volumes:
       - /mnt/prestashop:/var/www/html
+  register: docker_install

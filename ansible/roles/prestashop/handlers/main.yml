@@ -1,3 +1,4 @@
 ---
 - name: Restart Prestashop
   ansible.builtin.command: docker restart prestashop
+  when: not docker_install.changed
