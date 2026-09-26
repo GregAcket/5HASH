@@ -82,8 +82,6 @@ resource "aws_autoscaling_policy" "aws_autoscaling_policy" {
   }
 }
 
-
-
 ###
 
 ### Instance bastion

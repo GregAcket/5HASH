@@ -28,6 +28,7 @@ resource "aws_db_instance" "default" {
   multi_az               = true
   db_subnet_group_name   = aws_db_subnet_group.default.name
   vpc_security_group_ids = [var.asg_db_private_subnet_id]
+  storage_encrypted      = true
 }
 
 resource "aws_db_subnet_group" "default" {
