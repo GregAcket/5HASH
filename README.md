@@ -36,6 +36,8 @@ L'objectif est d'automatiser le déploiement en utilisant Terraform et Ansible p
 ## Architecture
 
 ![Architecture AWS](Docs/5hash-architecture.png)
+Figure: Architecture de l'infrasture de Prestashop. Les flêches roses réprésentent les intéractions de l'admin : les commandes terraform mettent à jour l'état de Terraform qui est ensuite stocké dans le bucket S3, et les commandes ansibles permettent de configurer les instances. Les des flêches noires sont associées aux parcours d'une requête utilisateur.
+
 
 L'infrastructure est déployée dans la région `eu-west-3`, au sein d'un VPC réparti sur deux zones de disponibilité :
 
