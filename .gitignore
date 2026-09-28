@@ -6,8 +6,7 @@
 .terraform.lock.hcl
 
 .keys/
-*.retry
-
 .ansible/
+*.retry
 
 **/group_vars/*
