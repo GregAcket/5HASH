@@ -37,6 +37,8 @@ resource "aws_launch_template" "launch_template" {
   instance_type                        = var.instance
   vpc_security_group_ids               = [var.asg_auto_scaling_group_private_subnet_id]
   key_name                             = aws_key_pair.key-5HASH.key_name
+  # user_data = ...
+
   tag_specifications {
     resource_type = "instance"
 

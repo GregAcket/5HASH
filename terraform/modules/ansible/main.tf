@@ -14,7 +14,8 @@ terraform {
 ### Ansible Host
 
 resource "ansible_host" "ansible_host_ec2" {
-  count  = var.min_size_ec2_instance
+  # count = var.min_size_ec2_instance
+  count  = length(var.running_ec2_instances)
   name   = "web-${count.index}"
   groups = ["webservers"]
   variables = {
