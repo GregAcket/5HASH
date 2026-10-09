@@ -65,33 +65,33 @@ The second playbook run must report no unexpected changes. The evaluator will th
 
 - Evaluation (30 pts)
 - Working solution (10 pts):
-  - [ ] eCommerce application is deployed and reachable (3 pts)
-  - [ ] Application is connected to a working database or data store (3 pts)
-  - [ ] At least one EC2 instance is provisioned with Terraform and configured with Ansible (2 pts)
-  - [ ] The complete solution can be deployed again from the submitted automation (2 pts)
+  - eCommerce application is deployed and reachable (3 pts)
+  - Application is connected to a working database or data store (3 pts)
+  - At least one EC2 instance is provisioned with Terraform and configured with Ansible (2 pts)
+  - The complete solution can be deployed again from the submitted automation (2 pts)
 
 - Terraform and AWS infrastructure (7 pts):
-  - [ ] Relevant AWS resources form a coherent architecture with a justified traffic-handling strategy (2 pts)
-  - [ ] Code organisation, modules, variables, variable descriptions, and outputs (2 pts)
-  - [ ] Environment separation (prod, staging, dev) (1 pt)
-  - [ ] Remote state, locking, data sources, and resource references (1 pt)
-  - [ ] Secure networking and secret handling (1 pt)
+  - Relevant AWS resources form a coherent architecture with a justified traffic-handling strategy (2 pts)
+  - Code organisation, modules, variables, variable descriptions, and outputs (2 pts)
+  - Environment separation (prod, staging, dev) (1 pt)
+  - Remote state, locking, data sources, and resource references (1 pt)
+  - Secure networking and secret handling (1 pt)
 
 - Ansible integration (6 pts):
-  - [ ] Dynamic inventory generated from Terraform (2 pts)
-  - [ ] Reusable roles and Ansible Galaxy (1 pt)
-  - [ ] Ansible Vault and secure secret handling (1 pt)
-  - [ ] Idempotent playbooks using templates and handlers (2 pts)
+  - Dynamic inventory generated from Terraform (2 pts)
+  - Reusable roles and Ansible Galaxy (1 pt)
+  - Ansible Vault and secure secret handling (1 pt)
+  - Idempotent playbooks using templates and handlers (2 pts)
 
 - README for developers (4 pts):
-  - [ ] Clarity and reproducible instructions (2 pts)
-  - [ ] Briefness (1 pt)
-  - [ ] Solution design choices, including the placement of components (1 pt)
+  - Clarity and reproducible instructions (2 pts)
+  - Briefness (1 pt)
+  - Solution design choices, including the placement of components (1 pt)
 
 - Presentation (3 pts):
-  - [ ] Clear explanation of the solution (1 pt)
-  - [ ] Working demonstration (1 pt)
-  - [ ] Ability to justify technical choices (1 pt)
+  - Clear explanation of the solution (1 pt)
+  - Working demonstration (1 pt)
+  - Ability to justify technical choices (1 pt)
 
 **Deadline:**
 Submit the project by the deadline communicated by the instructor.

@@ -34,8 +34,9 @@ Dans le cadre du concert de Taylor Shift, il nous a été demandé de configurer
 L'objectif est d'automatiser le déploiement en utilisant Terraform et Ansible pour éviter l'intervention d'une maintenance manuelle.
 
 ## Architecture
-
 ![Architecture AWS](Docs/5hash-architecture.png)
+**Figure: Architecture de l'infrasture de Prestashop.** Les flèches roses réprésentent les intéractions de l'admin : les commandes terraform mettent à jour l'état de Terraform qui est ensuite stocké dans le bucket S3, et les commandes ansibles permettent de configurer les instances. Les flèches noires sont associées aux parcours d'une requête utilisateur.
+
 
 L'infrastructure est déployée dans la région `eu-west-3`, au sein d'un VPC réparti sur deux zones de disponibilité :
 
